@@ -103,6 +103,8 @@ class TokenTest extends BaseTest
             $this->data->tokenTransferTestAmount
         );
 
+        $signer = $signer->sign($this->data->senderPrivateKey);
+
         if (!$this->data->tokenTransferTestIsActive) {
             $this->assertTrue(true);
             return;
@@ -110,7 +112,7 @@ class TokenTest extends BaseTest
 
         $beforeBalance = $this->token->getBalance($this->data->receiverTestAddress);
 
-        (new Transaction($signer->sign($this->data->senderPrivateKey)->send()))->wait();
+        (new Transaction($signer->send()))->wait();
 
         $afterBalance = $this->token->getBalance($this->data->receiverTestAddress);
 
@@ -133,12 +135,14 @@ class TokenTest extends BaseTest
             $this->data->tokenApproveTestAmount
         );
 
+        $signer = $signer->sign($this->data->senderPrivateKey);
+
         if (!$this->data->tokenApproveTestIsActive) {
             $this->assertTrue(true);
             return;
         }
 
-        (new Transaction($signer->sign($this->data->senderPrivateKey)->send()))->wait();
+        (new Transaction($signer->send()))->wait();
 
         $allowance = $this->token->getAllowance(
             $this->data->senderTestAddress,
@@ -163,6 +167,8 @@ class TokenTest extends BaseTest
             2
         );
 
+        $signer = $signer->sign($this->data->receiverPrivateKey);
+
         if (!$this->data->tokenTransferFromTestIsActive) {
             $this->assertTrue(true);
             return;
@@ -170,7 +176,7 @@ class TokenTest extends BaseTest
 
         $beforeBalance = $this->token->getBalance($this->data->receiverTestAddress);
 
-        (new Transaction($signer->sign($this->data->receiverPrivateKey)->send()))->wait();
+        (new Transaction($signer->send()))->wait();
 
         $afterBalance = $this->token->getBalance($this->data->receiverTestAddress);
 
