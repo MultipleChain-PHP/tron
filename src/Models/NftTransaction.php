@@ -31,7 +31,26 @@ class NftTransaction extends ContractTransaction implements NftTransactionInterf
      */
     public function getReceiver(): string
     {
-        return '0x';
+        /**
+         * @var null|object{'name': string, 'args': array<int,object>} $decoded
+         */
+        $decoded = $this->decodeData();
+
+        if (is_null($decoded)) {
+            return '';
+        }
+
+        if ('transferFrom' === $decoded->name) {
+            return $this->provider->addressFromHex(
+                // @phpstan-ignore-next-line
+                $decoded->args[1]->value
+            );
+        }
+
+        return $this->provider->addressFromHex(
+            // @phpstan-ignore-next-line
+            $decoded->args[0]->value
+        );
     }
 
     /**
@@ -39,7 +58,23 @@ class NftTransaction extends ContractTransaction implements NftTransactionInterf
      */
     public function getSender(): string
     {
-        return '0x';
+        /**
+         * @var null|object{'name': string, 'args': array<int,object>} $decoded
+         */
+        $decoded = $this->decodeData();
+
+        if (is_null($decoded)) {
+            return '';
+        }
+
+        if ('transferFrom' === $decoded->name) {
+            return $this->provider->addressFromHex(
+                // @phpstan-ignore-next-line
+                $decoded->args[0]->value
+            );
+        }
+
+        return $this->getSigner();
     }
 
     /**
@@ -47,7 +82,14 @@ class NftTransaction extends ContractTransaction implements NftTransactionInterf
      */
     public function getNftId(): int|string
     {
-        return 0;
+        $decoded = $this->decodeData();
+
+        if (is_null($decoded)) {
+            return '';
+        }
+
+        // @phpstan-ignore-next-line
+        return (int) hexdec($decoded->args[2]->value);
     }
 
     /**
@@ -58,6 +100,26 @@ class NftTransaction extends ContractTransaction implements NftTransactionInterf
      */
     public function verifyTransfer(AssetDirection $direction, string $address, int|string $nftId): TransactionStatus
     {
-        return TransactionStatus::PENDING;
+        $status = $this->getStatus();
+
+        if (TransactionStatus::PENDING === $status) {
+            return TransactionStatus::PENDING;
+        }
+
+        if ($this->getNftId() !== $nftId) {
+            return TransactionStatus::FAILED;
+        }
+
+        if (AssetDirection::INCOMING === $direction) {
+            if (strtolower($this->getReceiver()) !== strtolower($address)) {
+                return TransactionStatus::FAILED;
+            }
+        } else {
+            if (strtolower($this->getSender()) !== strtolower($address)) {
+                return TransactionStatus::FAILED;
+            }
+        }
+
+        return TransactionStatus::CONFIRMED;
     }
 }
