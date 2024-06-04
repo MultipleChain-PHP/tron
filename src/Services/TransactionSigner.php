@@ -62,7 +62,7 @@ class TransactionSigner implements TransactionSignerInterface
             if (!isset(($result ?: [])['result'])) {
                 $message = $result['message'] ?: null;
                 $message = is_null($message) ? null : hex2bin($message);
-                throw new \RuntimeException($message ?? ErrorType::TRANSACTION_CREATION_FAILED->value);
+                throw new \RuntimeException($message ?: ErrorType::TRANSACTION_CREATION_FAILED->value);
             }
             return $result['txid'];
         } catch (\Throwable $th) {

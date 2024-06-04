@@ -22,7 +22,7 @@ class Contract implements ContractInterface
     /**
      * @var array<string,mixed>
      */
-    private array $cachedMethods;
+    private array $cachedMethods = [];
 
     /**
      * @var string

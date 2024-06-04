@@ -6,6 +6,8 @@ namespace MultipleChain\Tron\Models;
 
 use MultipleChain\Utils\Number;
 use MultipleChain\Tron\Provider;
+use MultipleChain\Tron\Assets\NFT;
+use MultipleChain\Enums\ErrorType;
 use MultipleChain\Enums\TransactionType;
 use MultipleChain\Enums\TransactionStatus;
 use MultipleChain\Interfaces\ProviderInterface;
@@ -21,7 +23,7 @@ class Transaction implements TransactionInterface
     /**
      * @var mixed
      */
-    private mixed $data;
+    private mixed $data = null;
 
     /**
      * @var Provider
@@ -51,9 +53,18 @@ class Transaction implements TransactionInterface
      */
     public function getData(): mixed
     {
-        $this->provider->isTestnet(); // just for phpstan
-        $this->data = 'data'; // example implementation
-        return $this->data;
+        if (isset($this->data['info'])) {
+            return $this->data;
+        }
+
+        try {
+            $this->data = $this->provider->tron->getTransaction($this->id);
+            $result = $this->provider->tron->getTransactionInfo($this->id);
+            $this->data['info'] = isset($result['id']) ? $result : null;
+            return $this->data;
+        } catch (\Throwable $th) {
+            throw new \RuntimeException(ErrorType::RPC_REQUEST_ERROR->value);
+        }
     }
 
     /**
@@ -62,7 +73,18 @@ class Transaction implements TransactionInterface
      */
     public function wait(?int $ms = 4000): TransactionStatus
     {
-        return TransactionStatus::PENDING;
+        try {
+            $status = $this->getStatus();
+            if (TransactionStatus::PENDING != $status) {
+                return $status;
+            }
+
+            sleep($ms / 1000);
+
+            return $this->wait($ms);
+        } catch (\Throwable $th) {
+            return TransactionStatus::FAILED;
+        }
     }
 
     /**
@@ -70,6 +92,43 @@ class Transaction implements TransactionInterface
      */
     public function getType(): TransactionType
     {
+        $data = $this->getData();
+
+        if (null === $data) {
+            return TransactionType::GENERAL;
+        }
+
+        $selectors = [
+            // TRC20
+            'a9059cbb', // transfer(address,uint256)
+            '095ea7b3', // approve(address,uint256)
+            '23b872dd', // transferFrom(address,address,uint256)
+            // TRC721
+            '42842e0e', // safeTransferFrom(address,address,uint256)
+            'b88d4fde', // safeTransferFrom(address,address,uint256,bytes)
+            // TRC1155
+            'f242432a', // safeTransferFrom(address,address,uint256,uint256,bytes)
+            '2eb2c2d6', // safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)
+            '29535c7e' // setApprovalForAll(address,bool)
+        ];
+
+        if ('TriggerSmartContract' === $data['raw_data']['contract'][0]['type']) {
+            $val = $data['raw_data']['contract'][0]['parameter']['value'];
+            $selectorId = substr($val['data'], 0, 8);
+            if (in_array($selectorId, $selectors)) {
+                try {
+                    $tryNft = new NFT($val['contract_address'] ?? '');
+                    $tryNft->getApproved(1);
+                    return TransactionType::NFT;
+                } catch (\Throwable $th) {
+                    return TransactionType::TOKEN;
+                }
+            }
+            return TransactionType::CONTRACT;
+        } elseif ('TransferContract' === $data['raw_data']['contract'][0]['type']) {
+            return TransactionType::COIN;
+        }
+
         return TransactionType::GENERAL;
     }
 
@@ -78,7 +137,10 @@ class Transaction implements TransactionInterface
      */
     public function getUrl(): string
     {
-        return 'https://example.com';
+        $explorerUrl = $this->provider->node['explorer'];
+        $explorerUrl .= '/' === substr($explorerUrl, -1) ? '' : '/';
+        $explorerUrl .= '#/transaction/' . $this->id;
+        return $explorerUrl;
     }
 
     /**
@@ -86,7 +148,15 @@ class Transaction implements TransactionInterface
      */
     public function getSigner(): string
     {
-        return '0x';
+        $data = $this->getData();
+
+        if (null === $data) {
+            return '';
+        }
+
+        $addr = $data['raw_data']['contract'][0]['parameter']['value']['owner_address'];
+
+        return $this->provider->tron->hexString2Address($addr);
     }
 
     /**
@@ -94,7 +164,14 @@ class Transaction implements TransactionInterface
      */
     public function getFee(): Number
     {
-        return new Number('0');
+        $data = $this->getData();
+
+        if (null === $data) {
+            return new Number(0);
+        }
+
+        $fee = isset($data['info']['fee']) ? $data['info']['fee'] : 0;
+        return new Number($this->provider->tron->fromTron($fee), 6);
     }
 
     /**
@@ -102,7 +179,13 @@ class Transaction implements TransactionInterface
      */
     public function getBlockNumber(): int
     {
-        return 0;
+        $data = $this->getData();
+
+        if (null === $data) {
+            return 0;
+        }
+
+        return $data['info']['blockNumber'] ?? 0;
     }
 
     /**
@@ -110,7 +193,13 @@ class Transaction implements TransactionInterface
      */
     public function getBlockTimestamp(): int
     {
-        return 0;
+        $data = $this->getData();
+
+        if (null === $data) {
+            return 0;
+        }
+
+        return (int) rtrim((string) $data['info']['blockTimeStamp'], '000');
     }
 
     /**
@@ -118,7 +207,15 @@ class Transaction implements TransactionInterface
      */
     public function getBlockConfirmationCount(): int
     {
-        return 0;
+        $data = $this->getData();
+
+        if (null === $data) {
+            return 0;
+        }
+
+        $blockNumber = $this->getBlockNumber();
+        $latestBlock = $this->provider->tron->getCurrentBlock();
+        return $latestBlock['block_header']['raw_data']['number'] - $blockNumber;
     }
 
     /**
@@ -126,6 +223,21 @@ class Transaction implements TransactionInterface
      */
     public function getStatus(): TransactionStatus
     {
+        $data = $this->getData();
+
+        if (null === $data) {
+            return TransactionStatus::PENDING;
+        } elseif (isset($data['ret'][0]) && isset($data['info'])) {
+            if (isset($data['info']['blockNumber'])) {
+                $result = $data['info']['result'] ?? '';
+                if ('REVERT' === $data['ret'][0]['contractRet'] || 'FAILED' === $result) {
+                    return TransactionStatus::FAILED;
+                } else {
+                    return TransactionStatus::CONFIRMED;
+                }
+            }
+        }
+
         return TransactionStatus::PENDING;
     }
 }

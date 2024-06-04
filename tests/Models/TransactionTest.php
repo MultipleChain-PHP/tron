@@ -38,7 +38,7 @@ class TransactionTest extends BaseTest
      */
     public function testData(): void
     {
-        $this->assertIsObject($this->tx->getData());
+        $this->assertIsArray($this->tx->getData());
     }
 
     /**
@@ -81,7 +81,7 @@ class TransactionTest extends BaseTest
      */
     public function testFee(): void
     {
-        $this->assertEquals(0.000371822357865, $this->tx->getFee()->toFloat());
+        $this->assertEquals(1.1, $this->tx->getFee()->toFloat());
     }
 
     /**
@@ -89,7 +89,7 @@ class TransactionTest extends BaseTest
      */
     public function testBlockNumber(): void
     {
-        $this->assertEquals(5461884, $this->tx->getBlockNumber());
+        $this->assertEquals(46506377, $this->tx->getBlockNumber());
     }
 
     /**
@@ -97,7 +97,7 @@ class TransactionTest extends BaseTest
      */
     public function testBlockTimestamp(): void
     {
-        $this->assertEquals(1710141144, $this->tx->getBlockTimestamp());
+        $this->assertEquals(1714619148, $this->tx->getBlockTimestamp());
     }
 
     /**
@@ -105,7 +105,7 @@ class TransactionTest extends BaseTest
      */
     public function testBlockConfirmationCount(): void
     {
-        $this->assertGreaterThan(129954, $this->tx->getBlockConfirmationCount());
+        $this->assertGreaterThan(199, $this->tx->getBlockConfirmationCount());
     }
 
     /**
