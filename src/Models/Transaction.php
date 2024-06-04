@@ -8,6 +8,7 @@ use MultipleChain\Utils\Number;
 use MultipleChain\Tron\Provider;
 use MultipleChain\Tron\Assets\NFT;
 use MultipleChain\Enums\ErrorType;
+use MultipleChain\Tron\Assets\Coin;
 use MultipleChain\Enums\TransactionType;
 use MultipleChain\Enums\TransactionStatus;
 use MultipleChain\Interfaces\ProviderInterface;
@@ -170,8 +171,9 @@ class Transaction implements TransactionInterface
             return new Number(0);
         }
 
+        $decimals = (new Coin())->getDecimals();
         $fee = isset($data['info']['fee']) ? $data['info']['fee'] : 0;
-        return new Number($this->provider->tron->fromTron($fee), 6);
+        return new Number($this->provider->tron->fromTron($fee), $decimals);
     }
 
     /**
