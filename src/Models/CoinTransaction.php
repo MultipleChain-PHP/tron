@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MultipleChain\Tron\Models;
 
 use MultipleChain\Utils\Number;
+use MultipleChain\Tron\Assets\Coin;
 use MultipleChain\Enums\AssetDirection;
 use MultipleChain\Enums\TransactionStatus;
 use MultipleChain\Interfaces\Models\CoinTransactionInterface;
@@ -43,7 +44,7 @@ class CoinTransaction extends Transaction implements CoinTransactionInterface
 
         return new Number($this->provider->tron->fromTron(
             $data['raw_data']['contract'][0]['parameter']['value']['amount'] ?? 0
-        ), 6);
+        ), (new Coin())->getDecimals());
     }
 
     /**

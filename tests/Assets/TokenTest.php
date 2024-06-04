@@ -182,7 +182,7 @@ class TokenTest extends BaseTest
 
         $this->assertEquals(
             $afterBalance->toString(),
-            $beforeBalance->add(new Number(2))->toString()
+            $beforeBalance->add(new Number(2, $this->token->getDecimals()))->toString()
         );
     }
 }
