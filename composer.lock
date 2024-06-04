@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0313df908fa194f914cb77d62f917c0e",
+    "content-hash": "06733b675090e0121bd79883ecaaac5f",
     "packages": [
         {
             "name": "fenguoz/data-types",

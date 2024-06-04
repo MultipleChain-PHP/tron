@@ -60,6 +60,7 @@ class TransactionSigner implements TransactionSignerInterface
         try {
             $result = $this->provider->tron->sendRawTransaction($this->signedData);
             if (!isset(($result ?: [])['result'])) {
+                // TODO: add message decoder
                 throw new \RuntimeException(ErrorType::TRANSACTION_CREATION_FAILED->value);
             }
             return $result['txid'];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MultipleChain\Tron\Tests\Assets;
 
+use MultipleChain\Utils;
 use MultipleChain\Utils\Number;
 use MultipleChain\Tron\Assets\Token;
 use MultipleChain\Tron\Tests\BaseTest;
@@ -30,7 +31,7 @@ class TokenTest extends BaseTest
      */
     public function testName(): void
     {
-        $this->assertEquals('MyToken', $this->token->getName());
+        $this->assertEquals('SampleToken', $this->token->getName());
     }
 
     /**
@@ -38,7 +39,7 @@ class TokenTest extends BaseTest
      */
     public function testSymbol(): void
     {
-        $this->assertEquals('MTK', $this->token->getSymbol());
+        $this->assertEquals('SMP', $this->token->getSymbol());
     }
 
     /**
@@ -68,6 +69,26 @@ class TokenTest extends BaseTest
         $this->assertEquals(
             1000000,
             $this->token->getTotalSupply()->toFloat()
+        );
+    }
+
+    /**
+     * @return void
+     */
+    public function testEstimateEnergy(): void
+    {
+        $this->assertNotEquals(
+            0,
+            $this->token->getEstimateEnergy(
+                'transfer',
+                [
+                    $this->provider->tron->address2HexString(
+                        $this->data->receiverTestAddress
+                    ),
+                    Utils::numberToHex(1, 8)
+                ],
+                $this->data->senderTestAddress
+            )
         );
     }
 
@@ -117,6 +138,7 @@ class TokenTest extends BaseTest
             return;
         }
 
+        // TODO: fill try with $this->data->receiverPrivateKey for get error
         (new Transaction($signer->sign($this->data->senderPrivateKey)->send()))->wait();
 
         $allowance = $this->token->getAllowance(
