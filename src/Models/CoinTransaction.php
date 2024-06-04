@@ -16,7 +16,10 @@ class CoinTransaction extends Transaction implements CoinTransactionInterface
      */
     public function getReceiver(): string
     {
-        return '0x';
+        $data = $this->getData();
+        return $this->provider->tron->hexString2Address(
+            $data['raw_data']['contract'][0]['parameter']['value']['to_address'] ?? ''
+        );
     }
 
     /**
@@ -24,7 +27,7 @@ class CoinTransaction extends Transaction implements CoinTransactionInterface
      */
     public function getSender(): string
     {
-        return '0x';
+        return $this->getSigner();
     }
 
     /**
@@ -32,7 +35,15 @@ class CoinTransaction extends Transaction implements CoinTransactionInterface
      */
     public function getAmount(): Number
     {
-        return new Number('0');
+        $data = $this->getData();
+
+        if (null === $data) {
+            return new Number(0);
+        }
+
+        return new Number($this->provider->tron->fromTron(
+            $data['raw_data']['contract'][0]['parameter']['value']['amount'] ?? 0
+        ), 6);
     }
 
     /**
@@ -43,6 +54,26 @@ class CoinTransaction extends Transaction implements CoinTransactionInterface
      */
     public function verifyTransfer(AssetDirection $direction, string $address, float $amount): TransactionStatus
     {
-        return TransactionStatus::PENDING;
+        $status = $this->getStatus();
+
+        if (TransactionStatus::PENDING === $status) {
+            return TransactionStatus::PENDING;
+        }
+
+        if ($this->getAmount()->toFloat() !== $amount) {
+            return TransactionStatus::FAILED;
+        }
+
+        if (AssetDirection::INCOMING === $direction) {
+            if (strtolower($this->getReceiver()) !== strtolower($address)) {
+                return TransactionStatus::FAILED;
+            }
+        } else {
+            if (strtolower($this->getSender()) !== strtolower($address)) {
+                return TransactionStatus::FAILED;
+            }
+        }
+
+        return TransactionStatus::CONFIRMED;
     }
 }

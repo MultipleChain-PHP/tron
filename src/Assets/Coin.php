@@ -56,7 +56,7 @@ class Coin implements CoinInterface
      */
     public function getBalance(string $owner): Number
     {
-        return new Number($this->provider->tron->getBalance($owner, true));
+        return new Number($this->provider->tron->getBalance($owner, true), $this->getDecimals());
     }
 
     /**

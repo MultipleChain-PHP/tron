@@ -28,7 +28,7 @@ class Transaction implements TransactionInterface
     /**
      * @var Provider
      */
-    private Provider $provider;
+    protected Provider $provider;
 
     /**
      * @param string $id
