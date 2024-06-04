@@ -71,6 +71,8 @@ class CoinTest extends BaseTest
             $this->data->transferTestAmount
         );
 
+        $signer = $signer->sign($this->data->senderPrivateKey);
+
         if (!$this->data->coinTransferTestIsActive) {
             $this->assertTrue(true);
             return;
@@ -78,7 +80,7 @@ class CoinTest extends BaseTest
 
         $beforeBalance = $this->coin->getBalance($this->data->receiverTestAddress);
 
-        (new Transaction($signer->sign($this->data->senderPrivateKey)->send()))->wait();
+        (new Transaction($signer->send()))->wait();
 
         $afterBalance = $this->coin->getBalance($this->data->receiverTestAddress);
 

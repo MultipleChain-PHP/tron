@@ -96,12 +96,14 @@ class NftTest extends BaseTest
             $this->data->nftTransferId
         );
 
+        $signer = $signer->sign($this->data->senderPrivateKey);
+
         if (!$this->data->nftTransactionTestIsActive) {
             $this->assertTrue(true);
             return;
         }
 
-        (new Transaction($signer->sign($this->data->senderPrivateKey)->send()))->wait();
+        (new Transaction($signer->send()))->wait();
 
         $this->assertEquals(
             strtolower($this->nft->getOwner($this->data->nftTransferId)),
@@ -130,12 +132,14 @@ class NftTest extends BaseTest
             $this->data->nftTransferId
         );
 
+        $signer = $signer->sign($customPrivateKey);
+
         if (!$this->data->nftTransactionTestIsActive) {
             $this->assertTrue(true);
             return;
         }
 
-        (new Transaction($signer->sign($customPrivateKey)->send()))->wait();
+        (new Transaction($signer->send()))->wait();
 
         $this->assertEquals(
             strtolower($this->nft->getApproved($this->data->nftTransferId)),
