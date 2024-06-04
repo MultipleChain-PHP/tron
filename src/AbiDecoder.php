@@ -154,15 +154,15 @@ class AbiDecoder
     public function decodeLogs(array $logs): array
     {
         $logs = array_filter($logs, function ($log) {
-            return count($log->topics) > 0;
+            return count($log['topics']) > 0;
         });
 
         return array_map(function ($log) {
 
-            $method = $this->methodIds[substr($log->topics[0], 2)];
+            $method = $this->methodIds[$log['topics'][0]];
 
             if ($method) {
-                $logData = $log->data;
+                $logData = $log['data'];
                 $decodedParams = [];
                 $dataIndex = 0;
                 $topicsIndex = 1;
@@ -184,7 +184,7 @@ class AbiDecoder
                     ];
 
                     if ($input->indexed) {
-                        $decodedP->value = $log->topics[$topicsIndex];
+                        $decodedP->value = $log['topics'][$topicsIndex];
                         $topicsIndex++;
                     } else {
                         $decodedP->value = $decoded[$dataIndex];
@@ -217,7 +217,7 @@ class AbiDecoder
                 return (object) [
                     "name" => $method->name,
                     "events" => $decodedParams,
-                    "address" => $log->address,
+                    "address" => $log['address'],
                 ];
             }
         }, $logs);

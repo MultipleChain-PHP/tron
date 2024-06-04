@@ -73,6 +73,14 @@ class TokenTransactionTest extends BaseTest
     /**
      * @return void
      */
+    public function testDecodeLogs(): void
+    {
+        $this->assertEquals('Transfer', $this->tx->decodeLogs()[0]?->name ?? '');
+    }
+
+    /**
+     * @return void
+     */
     public function testVerifyTransfer(): void
     {
         $this->assertEquals(

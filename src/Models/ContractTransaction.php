@@ -17,6 +17,11 @@ class ContractTransaction extends Transaction implements ContractTransactionInte
     public array $abi;
 
     /**
+     * @var AbiDecoder
+     */
+    public AbiDecoder $decoder;
+
+    /**
      * @param string $id
      * @param Provider|null $provider
      * @param array<object>|null $abi
@@ -25,6 +30,7 @@ class ContractTransaction extends Transaction implements ContractTransactionInte
     {
         $this->abi = $abi ?? [];
         parent::__construct($id, $provider);
+        $this->decoder = new AbiDecoder($this->abi);
     }
 
     /**
@@ -39,10 +45,10 @@ class ContractTransaction extends Transaction implements ContractTransactionInte
     }
 
     /**
-     * @param object|null $data
-     * @return object|null
+     * @param array<mixed>|null $data
+     * @return array<mixed>|null
      */
-    public function decodeData(?object $data = null): ?object
+    private function getDataIfNotProvided(?array $data = null): ?array
     {
         if (is_null($data)) {
             $data = $this->getData();
@@ -50,10 +56,40 @@ class ContractTransaction extends Transaction implements ContractTransactionInte
                 return null;
             }
         }
+        return $data;
+    }
 
-        $decoder = new AbiDecoder($this->abi);
-        return $decoder->decodeInput(
+    /**
+     * @param array<mixed>|null $data
+     * @return object|null
+     */
+    public function decodeData(?array $data = null): ?object
+    {
+        $data = $this->getDataIfNotProvided($data);
+
+        if (is_null($data)) {
+            return null;
+        }
+
+        return $this->decoder->decodeInput(
             $data['raw_data']['contract'][0]['parameter']['value']['data'] ?? ''
+        );
+    }
+
+    /**
+     * @param array<mixed>|null $data
+     * @return array<mixed>|null
+     */
+    public function decodeLogs(?array $data = null): ?array
+    {
+        $data = $this->getDataIfNotProvided($data);
+
+        if (is_null($data)) {
+            return null;
+        }
+
+        return $this->decoder->decodeLogs(
+            $data['info']['log'] ?? []
         );
     }
 }
