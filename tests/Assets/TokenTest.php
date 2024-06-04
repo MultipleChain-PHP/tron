@@ -138,7 +138,6 @@ class TokenTest extends BaseTest
             return;
         }
 
-        // TODO: fill try with $this->data->receiverPrivateKey for get error
         (new Transaction($signer->sign($this->data->senderPrivateKey)->send()))->wait();
 
         $allowance = $this->token->getAllowance(
