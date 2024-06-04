@@ -60,7 +60,13 @@ class NFT extends Contract implements NftInterface
      */
     public function getOwner(int|string $tokenId): string
     {
-        return $this->addressFromHex($this->callMethod('ownerOf', $tokenId));
+        $result = $this->callMethod('ownerOf', $tokenId);
+
+        if ($this->isEmptyAddress($result)) {
+            throw new \RuntimeException(ErrorType::INVALID_ADDRESS->value);
+        }
+
+        return $this->provider->addressFromHex($result);
     }
 
     /**
@@ -80,11 +86,20 @@ class NFT extends Contract implements NftInterface
     {
         $result = $this->callMethod('getApproved', $tokenId);
 
-        if ('0x0000000000000000000000000000000000000000' === $result) {
+        if ($this->isEmptyAddress($result)) {
             return null;
         }
 
-        return $this->addressFromHex($result);
+        return $this->provider->addressFromHex($result);
+    }
+
+    /**
+     * @param string $address
+     * @return bool
+     */
+    private function isEmptyAddress(string $address): bool
+    {
+        return '0x0000000000000000000000000000000000000000' === $address || '0x' === $address || '' === $address;
     }
 
     /**

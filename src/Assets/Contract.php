@@ -120,15 +120,6 @@ class Contract implements ContractInterface
     }
 
     /**
-     * @param string $hex
-     * @return string
-     */
-    public function addressFromHex(string $hex): string
-    {
-        return $this->provider->tron->hexString2Address(str_replace('0x', '41', trim($hex)));
-    }
-
-    /**
      * @param string $method
      * @param mixed ...$args
      * @return mixed

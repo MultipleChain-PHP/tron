@@ -118,7 +118,7 @@ class Transaction implements TransactionInterface
             if (in_array($selectorId, $selectors)) {
                 try {
                     $tryNft = new NFT($val['contract_address'] ?? '');
-                    $tryNft->getApproved(1);
+                    $tryNft->getOwner(1);
                     return TransactionType::NFT;
                 } catch (\Throwable $th) {
                     return TransactionType::TOKEN;
