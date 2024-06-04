@@ -6,6 +6,7 @@ namespace MultipleChain\Tron\Assets;
 
 use MultipleChain\Utils\Number;
 use MultipleChain\Tron\Provider;
+use MultipleChain\Enums\ErrorType;
 use MultipleChain\Interfaces\ProviderInterface;
 use MultipleChain\Interfaces\Assets\NftInterface;
 use MultipleChain\Tron\Services\TransactionSigner;
@@ -31,7 +32,7 @@ class NFT extends Contract implements NftInterface
      */
     public function getName(): string
     {
-        return 'NFT';
+        return $this->callMethodWithCache('name');
     }
 
     /**
@@ -39,7 +40,7 @@ class NFT extends Contract implements NftInterface
      */
     public function getSymbol(): string
     {
-        return 'NFT';
+        return $this->callMethodWithCache('symbol');
     }
 
     /**
@@ -48,7 +49,9 @@ class NFT extends Contract implements NftInterface
      */
     public function getBalance(string $owner): Number
     {
-        return new Number('0');
+        $owner = $this->provider->tron->address2HexString($owner);
+        $balance = $this->callMethod('balanceOf', $owner, ['from' => $owner]);
+        return new Number($balance, 0);
     }
 
     /**
@@ -57,7 +60,7 @@ class NFT extends Contract implements NftInterface
      */
     public function getOwner(int|string $tokenId): string
     {
-        return '0x';
+        return $this->addressFromHex($this->callMethod('ownerOf', $tokenId));
     }
 
     /**
@@ -66,7 +69,7 @@ class NFT extends Contract implements NftInterface
      */
     public function getTokenURI(int|string $tokenId): string
     {
-        return 'https://example.com';
+        return $this->callMethod('tokenURI', $tokenId);
     }
 
     /**
@@ -75,7 +78,13 @@ class NFT extends Contract implements NftInterface
      */
     public function getApproved(int|string $tokenId): ?string
     {
-        return '0x';
+        $result = $this->callMethod('getApproved', $tokenId);
+
+        if ('0x0000000000000000000000000000000000000000' === $result) {
+            return null;
+        }
+
+        return $this->addressFromHex($result);
     }
 
     /**
@@ -86,7 +95,7 @@ class NFT extends Contract implements NftInterface
      */
     public function transfer(string $sender, string $receiver, int|string $tokenId): TransactionSigner
     {
-        return new TransactionSigner('example');
+        return $this->transferFrom($sender, $sender, $receiver, $tokenId);
     }
 
     /**
@@ -102,7 +111,32 @@ class NFT extends Contract implements NftInterface
         string $receiver,
         int|string $tokenId
     ): TransactionSigner {
-        return new TransactionSigner('example');
+        if ($this->getBalance($owner)->toFloat() <= 0) {
+            throw new \RuntimeException(ErrorType::INSUFFICIENT_BALANCE->value);
+        }
+
+        if (strtolower($this->getOwner($tokenId)) !== strtolower($owner)) {
+            throw new \RuntimeException(ErrorType::UNAUTHORIZED_ADDRESS->value);
+        }
+
+        if (strtolower($spender) !== strtolower($owner)) {
+            $approved = $this->getApproved($tokenId) ?? '';
+            if (strtolower($approved) !== strtolower($spender)) {
+                throw new \RuntimeException(ErrorType::UNAUTHORIZED_ADDRESS->value);
+            }
+        }
+
+        $owner = $this->provider->tron->address2HexString($owner);
+        $spender = $this->provider->tron->address2HexString($spender);
+        $receiver = $this->provider->tron->address2HexString($receiver);
+
+        try {
+            return new TransactionSigner($this->triggerContract(
+                $this->createTransactionData('transferFrom', $spender, $owner, $receiver, $tokenId)
+            ));
+        } catch (\Throwable $th) {
+            throw new \RuntimeException($th->getMessage(), $th->getCode());
+        }
     }
 
     /**
@@ -113,6 +147,23 @@ class NFT extends Contract implements NftInterface
      */
     public function approve(string $owner, string $spender, int|string $tokenId): TransactionSigner
     {
-        return new TransactionSigner('example');
+        if ($this->getBalance($owner)->toFloat() <= 0) {
+            throw new \RuntimeException(ErrorType::INSUFFICIENT_BALANCE->value);
+        }
+
+        if (strtolower($this->getOwner($tokenId)) !== strtolower($owner)) {
+            throw new \RuntimeException(ErrorType::UNAUTHORIZED_ADDRESS->value);
+        }
+
+        $owner = $this->provider->tron->address2HexString($owner);
+        $spender = $this->provider->tron->address2HexString($spender);
+
+        try {
+            return new TransactionSigner($this->triggerContract(
+                $this->createTransactionData('approve', $owner, $spender, $tokenId)
+            ));
+        } catch (\Throwable $th) {
+            throw new \RuntimeException($th->getMessage(), $th->getCode());
+        }
     }
 }

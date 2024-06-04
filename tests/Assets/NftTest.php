@@ -30,7 +30,7 @@ class NftTest extends BaseTest
      */
     public function testName(): void
     {
-        $this->assertEquals('NFT2', $this->nft->getName());
+        $this->assertEquals('MyNFT', $this->nft->getName());
     }
 
     /**
@@ -38,7 +38,7 @@ class NftTest extends BaseTest
      */
     public function testSymbol(): void
     {
-        $this->assertEquals('NFT2', $this->nft->getSymbol());
+        $this->assertEquals('MNFT', $this->nft->getSymbol());
     }
 
     /**
@@ -59,7 +59,7 @@ class NftTest extends BaseTest
     {
         $this->assertEquals(
             strtolower($this->data->balanceTestAddress),
-            strtolower($this->nft->getOwner(600))
+            strtolower($this->nft->getOwner(9))
         );
     }
 
@@ -70,7 +70,7 @@ class NftTest extends BaseTest
     {
         $this->assertEquals(
             '',
-            $this->nft->getTokenURI(600)
+            $this->nft->getTokenURI(9)
         );
     }
 
@@ -81,7 +81,7 @@ class NftTest extends BaseTest
     {
         $this->assertEquals(
             null,
-            $this->nft->getApproved(600)
+            $this->nft->getApproved(9)
         );
     }
 

@@ -20,6 +20,11 @@ class Contract implements ContractInterface
     private string $address;
 
     /**
+     * @var array<string,mixed>
+     */
+    private array $cachedMethods;
+
+    /**
      * @var string
      */
     private string $hexAddress;
@@ -112,6 +117,29 @@ class Contract implements ContractInterface
         }
 
         return $this->cleanStr($result);
+    }
+
+    /**
+     * @param string $hex
+     * @return string
+     */
+    public function addressFromHex(string $hex): string
+    {
+        return $this->provider->tron->hexString2Address(str_replace('0x', '41', trim($hex)));
+    }
+
+    /**
+     * @param string $method
+     * @param mixed ...$args
+     * @return mixed
+     */
+    public function callMethodWithCache(string $method, mixed ...$args): mixed
+    {
+        if (isset($this->cachedMethods[$method])) {
+            return $this->cachedMethods[$method];
+        }
+
+        return $this->cachedMethods[$method] = $this->callMethod($method, ...$args);
     }
 
     /**
