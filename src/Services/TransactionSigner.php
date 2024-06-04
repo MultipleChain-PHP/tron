@@ -5,20 +5,21 @@ declare(strict_types=1);
 namespace MultipleChain\Tron\Services;
 
 use MultipleChain\Tron\Provider;
+use MultipleChain\Enums\ErrorType;
 use MultipleChain\Interfaces\ProviderInterface;
 use MultipleChain\Interfaces\Services\TransactionSignerInterface;
 
 class TransactionSigner implements TransactionSignerInterface
 {
     /**
-     * @var mixed
+     * @var array<mixed>
      */
-    private mixed $rawData;
+    private array $rawData;
 
     /**
-     * @var mixed
+     * @var array<mixed>
      */
-    private mixed $signedData;
+    private array $signedData;
 
     /**
      * @var Provider
@@ -42,10 +43,13 @@ class TransactionSigner implements TransactionSignerInterface
      */
     public function sign(string $privateKey): TransactionSignerInterface
     {
-        // example implementation
-        $this->provider->isTestnet(); // just for phpstan
-        $this->signedData = 'signedData';
-        return $this;
+        try {
+            $this->provider->tron->setPrivateKey($privateKey);
+            $this->signedData = $this->provider->tron->signTransaction($this->rawData);
+            return $this;
+        } catch (\Throwable $th) {
+            throw new \RuntimeException(ErrorType::TRANSACTION_CREATION_FAILED->value . ": " . $th->getMessage());
+        }
     }
 
     /**
@@ -53,22 +57,29 @@ class TransactionSigner implements TransactionSignerInterface
      */
     public function send(): string
     {
-        // example implementation
-        return 'transactionId';
+        try {
+            $result = $this->provider->tron->sendRawTransaction($this->signedData);
+            if (!isset(($result ?: [])['result'])) {
+                throw new \RuntimeException(ErrorType::TRANSACTION_CREATION_FAILED->value);
+            }
+            return $result['txid'];
+        } catch (\Throwable $th) {
+            throw new \RuntimeException(ErrorType::TRANSACTION_CREATION_FAILED->value . ": " . $th->getMessage());
+        }
     }
 
     /**
-     * @return mixed
+     * @return  array<mixed>
      */
-    public function getRawData(): mixed
+    public function getRawData(): array
     {
         return $this->rawData;
     }
 
     /**
-     * @return mixed
+     * @return array<mixed>
      */
-    public function getSignedData(): mixed
+    public function getSignedData(): array
     {
         return $this->signedData;
     }

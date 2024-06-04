@@ -6,6 +6,7 @@ namespace MultipleChain\Tron\Assets;
 
 use MultipleChain\Utils\Number;
 use MultipleChain\Tron\Provider;
+use MultipleChain\Enums\ErrorType;
 use MultipleChain\Interfaces\ProviderInterface;
 use MultipleChain\Interfaces\Assets\CoinInterface;
 use MultipleChain\Tron\Services\TransactionSigner;
@@ -30,7 +31,7 @@ class Coin implements CoinInterface
      */
     public function getName(): string
     {
-        return 'Coin';
+        return 'Tron';
     }
 
     /**
@@ -38,7 +39,7 @@ class Coin implements CoinInterface
      */
     public function getSymbol(): string
     {
-        return 'COIN';
+        return 'TRX';
     }
 
     /**
@@ -46,7 +47,7 @@ class Coin implements CoinInterface
      */
     public function getDecimals(): int
     {
-        return 18;
+        return 6;
     }
 
     /**
@@ -55,8 +56,7 @@ class Coin implements CoinInterface
      */
     public function getBalance(string $owner): Number
     {
-        $this->provider->isTestnet(); // just for phpstan
-        return new Number(0);
+        return new Number($this->provider->tron->getBalance($owner, true));
     }
 
     /**
@@ -67,6 +67,23 @@ class Coin implements CoinInterface
      */
     public function transfer(string $sender, string $receiver, float $amount): TransactionSigner
     {
-        return new TransactionSigner('example');
+        if ($amount < 0) {
+            throw new \RuntimeException(ErrorType::INVALID_AMOUNT->value);
+        }
+
+        if ($amount > $this->getBalance($sender)->toFloat()) {
+            throw new \RuntimeException(ErrorType::INSUFFICIENT_BALANCE->value);
+        }
+
+        if (strtolower($sender) === strtolower($receiver)) {
+            throw new \RuntimeException(ErrorType::INVALID_ADDRESS->value);
+        }
+
+        try {
+            $builder = $this->provider->tron->getTransactionBuilder();
+            return new TransactionSigner($builder->sendTrx($receiver, $amount, $sender));
+        } catch (\Exception $e) {
+            throw new \RuntimeException(ErrorType::TRANSACTION_CREATION_FAILED->value . ": " . $e->getMessage());
+        }
     }
 }
