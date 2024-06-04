@@ -29,7 +29,8 @@
     ],
     "require": {
         "multiplechain/utils": "^0.1.3",
-        "multiplechain/definitions": "^0.1.1"
+        "multiplechain/definitions": "^0.1.1",
+        "fenguoz/tron-php": "^2.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5",
